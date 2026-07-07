@@ -81,6 +81,20 @@ if (!payosClient) {
         status: "PENDING",
         createdAt: Date.now()
       };
+      // Thay các thông tin dưới đây bằng tài khoản thật của bạn để test quét mã
+      const BANK_ID = "MB BANK"; // Giữ nguyên MB nếu bạn dùng MB Bank
+      const ACCOUNT_NO = "0937551868"; // Điền số tài khoản MB của bạn
+      const ACCOUNT_NAME = "MAI VAN VIET"; // Tên tài khoản không dấu
+
+      const infoDesc = encodeURIComponent(description || "Thanh toan");
+      const qrUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${amount}&addInfo=${infoDesc}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
+
+      return {
+        checkoutUrl: `https://example.com/checkout/${code}`,
+        qrCode: qrUrl, // Trả về link ảnh VietQR chuẩn
+        data: payments[code]
+      };
+/*
       const qrData = encodeURIComponent(`PAYMENT|${code}|${payments[code].amount}|${payments[code].description}`);
       return {
         checkoutUrl: `https://example.com/checkout/${code}`,
@@ -88,6 +102,7 @@ if (!payosClient) {
         data: payments[code]
       };
     },
+*/
     async getPaymentLinkInformation(orderCode) {
       const code = Number(orderCode);
       const info = payments[code];
