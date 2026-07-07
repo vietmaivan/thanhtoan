@@ -1,8 +1,5 @@
 const CURRENT_HOST = window.location.hostname;
-let API_URL = "";
-
-const CURRENT_HOST = window.location.hostname;
-let API_URL = "https://automatic-halibut-64r579jr6r4f4p4-3000.app.github.dev";
+let API_URL = "https://cautious-barnacle-6pv76vrr4h4g97-3000.app.github.dev";
 
 // Cấu hình tự động: Nếu chạy ở máy tính cá nhân (Localhost) thì giữ nguyên localhost, 
 // còn nếu chạy trên GitHub Pages hoặc bất kỳ đâu khác, sẽ ép buộc gọi tới link Codespaces của bạn.
