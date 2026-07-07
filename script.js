@@ -16,7 +16,7 @@ console.log("Cấu hình API kết nối tới mục tiêu:", API_URL);
 let currentOrderCode = null;
 let checkInterval = null;
 
-// Hàm xóa dấu tiếng Việt và ký tự đặc biệt nguy hiểm
+// Hàm xóa dấu tiếng Việt và ký tự đặc biệt nguy hiểm cho URL
 function removeSign(str) {
     return str
         .normalize("NFD")
@@ -43,7 +43,7 @@ async function generatePaymentQR() {
         return;
     }
 
-    // Xử lý số tiền: Loại bỏ tất cả ký tự không phải là số (ví dụ: "10.000" -> "10000")
+    // Xử lý số tiền: Loại bỏ tất cả ký tự không phải là số (ví dụ: "100.000" -> 100000)
     const cleanAmount = Number(amountInput.replace(/[^0-9]/g, ""));
     if (isNaN(cleanAmount) || cleanAmount <= 0) {
         Swal.fire({
@@ -91,26 +91,43 @@ async function generatePaymentQR() {
 
         currentOrderCode = result.orderCode;
 
-        // Ẩn form nhập, hiện phần QR
+        // Ẩn form nhập, hiện phần hiển thị QR
         document.getElementById("inputForm").style.display = "none";
         document.getElementById("qrSection").style.display = "block";
 
-        // Hiển thị số tiền định dạng vi-VN định dạng chuẩn lên giao diện
+        // Hiển thị thông tin định dạng chuẩn lên giao diện
         document.getElementById("displayAmount").innerText = cleanAmount.toLocaleString("vi-VN") + " đ";
         document.getElementById("orderMemo").innerText = memo;
         document.getElementById("successStudentInfo").innerText = rawName;
 
         const qrImgElement = document.getElementById("qrImage");
-        qrImgElement.alt = "Đang tải mã QR..."; // Reset text lỗi cũ
+        qrImgElement.alt = "Đang tải mã QR..."; // Reset text báo lỗi cũ
 
-        // --- ĐOẠN XỬ LÝ HIỂN THỊ QR CHUẨN ---
+        // --- ĐOẠN XỬ LÝ ĐƯỜNG DẪN ẢNH QR GỐC TỪ API ---
+        let qrDataString = "";
         if (result.data && result.data.qrCode) {
-            qrImgElement.src = result.data.qrCode;
+            qrDataString = result.data.qrCode;
         } else if (result.qrCode) {
-            qrImgElement.src = result.qrCode;
+            qrDataString = result.qrCode;
+        } else if (result.data && result.data.checkoutUrl) {
+            // Nếu API trả về link trang thanh toán thay vì mã ảnh
+            qrDataString = result.data.checkoutUrl;
+        }
+
+        // --- ĐOẠN PHÂN TÍCH VÀ BIẾN ĐỔI THÀNH ẢNH CHUẨN ---
+        if (qrDataString) {
+            if (qrDataString.startsWith("http") || qrDataString.startsWith("data:image")) {
+                // Nếu đã là link ảnh URL trực tiếp hoặc Base64, gán thẳng vào src
+                qrImgElement.src = qrDataString;
+            } else if (qrDataString.startsWith("000201")) {
+                // SỬA LỖI ĐÂY: Nếu là chuỗi text thô, gọi qua API tạo ảnh QR miễn phí của VietQR
+                qrImgElement.src = `https://api.vietqr.io/image/generate.png?data=${encodeURIComponent(qrDataString)}`;
+            } else {
+                qrImgElement.src = qrDataString;
+            }
         } else {
-            // Giải pháp dự phòng tối ưu: Tự sinh link VietQR chuẩn nếu API không trả về ảnh trực tiếp
-            console.warn("API không trả về link ảnh QR trực tiếp, chuyển sang giải pháp dự phòng VietQR API.");
+            // Giải pháp dự phòng tự tạo link VietQR nếu hệ thống API backend không trả dữ liệu về
+            console.warn("API không phản hồi chuỗi QR, chuyển sang phương án dự phòng.");
             const BANK_ID = "MB"; 
             const ACCOUNT_NO = "0937551868"; 
             const ACCOUNT_NAME = "MAI VAN VIET"; 
@@ -163,10 +180,10 @@ function showSuccessNotification() {
     });
 }
 
-// Gắn sự kiện click
+// Gắn sự kiện click cho nút thanh toán chính
 document.getElementById("payBtn").addEventListener("click", generatePaymentQR);
 
-// Kiểm tra sự tồn tại của phần tử test trước khi gắn sự kiện tránh lỗi Console
+// Kiểm tra nút giả lập thanh toán (nếu có trên giao diện) trước khi gán sự kiện tránh lỗi Console
 const testBtn = document.getElementById("testServerPay");
 if (testBtn) {
     testBtn.addEventListener("click", () => {
