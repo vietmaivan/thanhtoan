@@ -16,13 +16,14 @@ console.log("Cấu hình API kết nối tới mục tiêu:", API_URL);
 let currentOrderCode = null;
 let checkInterval = null;
 
+// Hàm xóa dấu tiếng Việt và ký tự đặc biệt nguy hiểm
 function removeSign(str) {
     return str
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/đ/g, "d")
         .replace(/Đ/g, "D")
-        .replace(/[^a-zA-Z0-9\s]/g, "") // Loại bỏ triệt để ký tự đặc biệt nguy hiểm cho URL
+        .replace(/[^a-zA-Z0-9\s]/g, "") 
         .toUpperCase()
         .replace(/\s+/g, " ")
         .trim();
@@ -31,13 +32,24 @@ function removeSign(str) {
 async function generatePaymentQR() {
     const rawName = document.getElementById("studentName").value.trim();
     const rawContent = document.getElementById("paymentContent").value.trim();
-    const amount = document.getElementById("tuitionAmount").value.trim();
+    const amountInput = document.getElementById("tuitionAmount").value.trim();
 
-    if (!rawName || !rawContent || !amount) {
+    if (!rawName || !rawContent || !amountInput) {
         Swal.fire({
             icon: "warning",
             title: "Thiếu thông tin",
             text: "Vui lòng nhập đầy đủ thông tin."
+        });
+        return;
+    }
+
+    // Xử lý số tiền: Loại bỏ tất cả ký tự không phải là số (ví dụ: "10.000" -> "10000")
+    const cleanAmount = Number(amountInput.replace(/[^0-9]/g, ""));
+    if (isNaN(cleanAmount) || cleanAmount <= 0) {
+        Swal.fire({
+            icon: "error",
+            title: "Số tiền không hợp lệ",
+            text: "Vui lòng kiểm tra lại số tiền nhập vào."
         });
         return;
     }
@@ -60,7 +72,7 @@ async function generatePaymentQR() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                amount: Number(amount),
+                amount: cleanAmount,
                 description: memo
             })
         });
@@ -79,47 +91,39 @@ async function generatePaymentQR() {
 
         currentOrderCode = result.orderCode;
 
+        // Ẩn form nhập, hiện phần QR
         document.getElementById("inputForm").style.display = "none";
         document.getElementById("qrSection").style.display = "block";
 
-        document.getElementById("displayAmount").innerText =
-            Number(amount).toLocaleString("vi-VN") + " đ";
-
+        // Hiển thị số tiền định dạng vi-VN định dạng chuẩn lên giao diện
+        document.getElementById("displayAmount").innerText = cleanAmount.toLocaleString("vi-VN") + " đ";
         document.getElementById("orderMemo").innerText = memo;
         document.getElementById("successStudentInfo").innerText = rawName;
 
         const qrImgElement = document.getElementById("qrImage");
-        qrImgElement.alt = "Đang tải mã QR..."; // Reset text lỗi cũ trước khi gắn src mới
+        qrImgElement.alt = "Đang tải mã QR..."; // Reset text lỗi cũ
 
-        // --- ĐOẠN ĐÃ SỬA: Sắp xếp mạch lạc logic, loại bỏ hoàn toàn các lỗi cú pháp lặp khối ---
+        // --- ĐOẠN XỬ LÝ HIỂN THỊ QR CHUẨN ---
         if (result.data && result.data.qrCode) {
             qrImgElement.src = result.data.qrCode;
         } else if (result.qrCode) {
             qrImgElement.src = result.qrCode;
-        } else if (result.data && result.data.checkoutUrl) {
-            qrImgElement.src = result.data.checkoutUrl; 
-        } else if (amount && memo) {
-            // Giải pháp dự phòng: Tự sinh link VietQR chuẩn nếu không lấy trực tiếp được ảnh từ kết quả
+        } else {
+            // Giải pháp dự phòng tối ưu: Tự sinh link VietQR chuẩn nếu API không trả về ảnh trực tiếp
+            console.warn("API không trả về link ảnh QR trực tiếp, chuyển sang giải pháp dự phòng VietQR API.");
             const BANK_ID = "MB"; 
             const ACCOUNT_NO = "0937551868"; 
             const ACCOUNT_NAME = "MAI VAN VIET"; 
-            qrImgElement.src = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${amount}&addInfo=${encodeURIComponent(memo)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
-        } else {
-            Swal.fire({
-                icon: "error",
-                title: "Không nhận được QR từ server",
-                text: "Vui lòng kiểm tra lại cấu hình kết nối ứng dụng."
-            });
-            return;
+            
+            qrImgElement.src = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${cleanAmount}&addInfo=${encodeURIComponent(memo)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
         }
-        // -----------------------------------------------------------------------------------
 
         document.getElementById("labelText").innerText = "Đang chờ thanh toán...";
         clearInterval(checkInterval);
         checkInterval = setInterval(verifyPaymentRealTime, 2000);
 
     } catch (err) {
-        console.error(err);
+        console.error("Lỗi tạo QR:", err);
         Swal.close();
         Swal.fire({
             icon: "error",
@@ -141,7 +145,7 @@ async function verifyPaymentRealTime() {
             showSuccessNotification();
         }
     } catch (err) {
-        console.log(err);
+        console.log("Lỗi kiểm tra trạng thái đơn hàng:", err);
     }
 }
 
@@ -159,7 +163,13 @@ function showSuccessNotification() {
     });
 }
 
+// Gắn sự kiện click
 document.getElementById("payBtn").addEventListener("click", generatePaymentQR);
-document.getElementById("testServerPay").addEventListener("click", () => {
-    showSuccessNotification();
-});
+
+// Kiểm tra sự tồn tại của phần tử test trước khi gắn sự kiện tránh lỗi Console
+const testBtn = document.getElementById("testServerPay");
+if (testBtn) {
+    testBtn.addEventListener("click", () => {
+        showSuccessNotification();
+    });
+}
