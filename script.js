@@ -1,5 +1,5 @@
 const CURRENT_HOST = window.location.hostname;
-let API_URL = "https://bug-free-dollop-qp94g7w9jg624gx9-3000.app.github.dev/";
+let API_URL = "https://bug-free-dollop-qp94g7w9jg624gx9-3000.app.github.dev";
 
 if (CURRENT_HOST.includes("localhost") || CURRENT_HOST.includes("127.0.0.1")) {
     API_URL = "http://localhost:3000"; 
