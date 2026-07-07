@@ -94,7 +94,7 @@ if (!payosClient) {
         qrCode: qrUrl,
         data: payments[code]
       };
-    }, // <-- Lỗi của bạn trước đó thường là do thiếu dấu phẩy quan trọng này đây!
+    },
 
     async getPaymentLinkInformation(orderCode) {
       const code = Number(orderCode);
@@ -108,6 +108,7 @@ if (!payosClient) {
       return { status: info.status, data: info };
     }
   };
+} // <-- ĐÂY LÀ DẤU NGOẶC ĐÃ ĐƯỢC THÊM ĐỂ SỬA LỖI!
 
 // ==========================
 // Routes
@@ -134,7 +135,6 @@ app.post("/create-payment-link", async (req, res) => {
       orderCode,
       amount: Number(amount),
       description: (description || "Thanh toan").substring(0, 100)
-      // cancelUrl / returnUrl could be added if real SDK needs
     };
 
     // If using real SDK, call its method; the mock also exposes same method
