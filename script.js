@@ -1,6 +1,22 @@
 const CURRENT_HOST = window.location.hostname;
 let API_URL = "";
 
+const CURRENT_HOST = window.location.hostname;
+let API_URL = "https://automatic-halibut-64r579jr6r4f4p4-3000.app.github.dev";
+
+// Cấu hình tự động: Nếu chạy ở máy tính cá nhân (Localhost) thì giữ nguyên localhost, 
+// còn nếu chạy trên GitHub Pages hoặc bất kỳ đâu khác, sẽ ép buộc gọi tới link Codespaces của bạn.
+if (CURRENT_HOST.includes("localhost") || CURRENT_HOST.includes("127.0.0.1")) {
+    API_URL = "http://localhost:3000"; 
+} else {
+    // Trỏ thẳng về link Codespace của bạn khi chạy trên GitHub Pages (vietmaivan.github.io)
+    API_URL = "https://automatic-halibut-64r579jr6r4f4p4-3000.app.github.dev";
+}
+
+console.log("Cấu hình API kết nối tới mục tiêu:", API_URL);
+
+// --- Các đoạn code bên dưới giữ nguyên ---
+/*
 if (CURRENT_HOST.includes("localhost") || CURRENT_HOST.includes("127.0.0.1")) {
     API_URL = "http://localhost:3000"; // Định nghĩa rõ port local nếu chạy tách biệt
 } else if (CURRENT_HOST.includes("github.dev") || CURRENT_HOST.includes("app.github.dev")) {
@@ -10,7 +26,7 @@ if (CURRENT_HOST.includes("localhost") || CURRENT_HOST.includes("127.0.0.1")) {
 }
 
 console.log("Cấu hình API kết nối tới mục tiêu:", API_URL);
-
+*/
 let currentOrderCode = null;
 let checkInterval = null;
 
