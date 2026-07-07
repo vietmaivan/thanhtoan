@@ -4,11 +4,11 @@ let API_URL = "https://bug-free-dollop-qp94g7w9jg624gx9-3000.app.github.dev";
 if (CURRENT_HOST.includes("localhost") || CURRENT_HOST.includes("127.0.0.1")) {
     API_URL = "http://localhost:3000"; 
 } else if (CURRENT_HOST.includes("github.dev") || CURRENT_HOST.includes("app.github.dev")) {
-    // Tự động lấy link Codespace hiện tại nếu bạn đang test trực tiếp trên tab Codespace preview
-    API_URL = `${window.location.protocol}//${window.location.host}`;
+    // SỬA TẠI ĐÂY: Sử dụng dấu "=" để gán giá trị biến, không dùng dấu ":"
+    API_URL = window.location.origin;
 } else {
-    // KHI CHẠY TRÊN GITHUB PAGES: Thay link chạy thực tế hiện tại của bạn vào đây
-    API_URL = https://bug-free-dollop-qp94g7w9jg624gx9-3000.app.github.dev";
+    // KHI CHẠY TRÊN GITHUB PAGES: Link endpoint backend Codespace của bạn
+    API_URL = "https://bug-free-dollop-qp94g7w9jg624gx9-3000.app.github.dev";
 }
 
 console.log("Cấu hình API kết nối tới mục tiêu:", API_URL);
