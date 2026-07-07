@@ -23,7 +23,7 @@
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
             text-align: center;
-            max-width: 460px; /* Tăng nhẹ độ rộng để nội dung dài không bị xuống dòng xấu */
+            max-width: 460px;
             width: 100%;
         }
         .input-group {
@@ -62,7 +62,7 @@
             background-color: #01579b;
         }
         .qr-section {
-            display: none; /* Ẩn mặc định, điền thông tin xong mới hiện */
+            display: none;
             margin-top: 25px;
             border-top: 2px dashed #eee;
             padding-top: 20px;
@@ -75,9 +75,9 @@
             padding: 10px;
             border-radius: 8px;
             display: block;
+            object-fit: contain;
+            background: white;
         }
-        
-        /* Bảng chi tiết thông tin thanh toán rõ ràng */
         .payment-details {
             width: 100%;
             margin-top: 15px;
@@ -101,7 +101,6 @@
             color: #212121;
             font-weight: bold;
         }
-        
         .amount {
             font-size: 26px;
             font-weight: bold;
@@ -114,28 +113,32 @@
             padding: 12px;
             font-size: 16px;
             font-weight: bold;
-            letter-spacing: 0.5px; /* Giảm độ rộng khoảng cách chữ một chút để vừa chuỗi dài */
+            letter-spacing: 0.5px;
             color: #b78103;
             border-radius: 6px;
             margin: 5px 0 15px 0;
             display: inline-block;
             width: 100%;
             box-sizing: border-box;
-            word-wrap: break-word; /* Tự động xuống dòng nếu chuỗi quá dài, không lo bị khuất */
+            word-wrap: break-word;
         }
         .status {
             margin-top: 15px;
             font-size: 14px;
             color: #0288d1;
             font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         .spinner {
             width: 16px;
             height: 16px;
             border: 2px solid #e0f2f1;
-            border-top: 2px solid #0288d1; /* Màu của vòng xoay trùng màu chữ */
+            border-top: 2px solid #0288d1;
             border-radius: 50%;
-            animation: spin 1s linear infinite; /* Xoay vô hạn */
+            animation: spin 1s linear infinite;
             display: inline-block;
         }
         @keyframes spin {
@@ -143,7 +146,7 @@
             100% { transform: rotate(360deg); }
         }
         .success-box {
-            display: none; /* Ẩn mặc định, thành công mới hiện */
+            display: none;
             color: #2e7d32;
         }
         .success-box svg {
@@ -159,12 +162,12 @@
     <div id="inputForm">
         <h3>Thanh Toán Điện Tử</h3>
         <p style="font-size: 13px; color: #666; margin-bottom: 20px;">Vui lòng nhập thông tin để tạo mã QR thanh toán.</p>
-        
+
         <div class="input-group">
             <label for="studentName">Họ và tên võ sinh:</label>
             <input type="text" id="studentName" placeholder="Ví dụ: MAI VAN VIET" required>
         </div>
-        
+
         <div class="input-group">
             <label for="paymentContent">Nội dung chuyển khoản:</label>
             <input type="text" id="paymentContent" placeholder="Ví dụ: HOC PHI THANG 7 hoặc TIEN DONG PHUC" required>
@@ -175,20 +178,20 @@
             <input type="number" id="tuitionAmount" placeholder="Nhập số tiền..." required>
         </div>
 
-        <button class="btn-submit" onclick="generatePaymentQR()">Thanh Toán</button>
+        <button class="btn-submit" id="payBtn">Thanh Toán</button>
     </div>
 
     <div id="qrSection" class="qr-section">
         <h3>Quét Mã QR Để Thanh Toán</h3>
-        <p style="font-size: 14px; color: #777;">Agribank tự động kiểm tra khi bạn chuyển khoản thành công.</p>
-        
+        <p style="font-size: 14px; color: #777;">Hệ thống Agribank tự động kiểm tra sau khi bạn chuyển khoản thành công.</p>
+
         <img class="qr-code" id="qrImage" src="" alt="Đang tải mã QR...">
-        
+
         <div class="amount" id="displayAmount">0 đ</div>
-        
-        <p style="margin-top: 15px; margin-bottom: 5px; font-weight: bold; text-align: left;">Nội dung chuyển khoản:</p>
+
+        <p style="margin-top: 15px; margin-bottom: 5px; font-weight: bold; text-align: left;">Nội dung chuyển khoản chuẩn:</p>
         <div class="memo-box" id="orderMemo"></div>
-        
+
         <table class="payment-details">
             <tr>
                 <td class="label">Ngân hàng:</td>
@@ -203,14 +206,14 @@
                 <td class="value">MAI VAN VIET</td>
             </tr>
         </table>
-        
+
         <div class="status" id="statusText">
             <div class="spinner"></div>
-            <span>Hệ thống đang chờ bạn quét mã chuyển khoản...</span>
+            <span id="labelText">Hệ thống đang chờ bạn quét mã chuyển khoản...</span>
         </div>
-        
-        <button onclick="triggerMockSuccess()" style="margin-top:20px; padding:10px 15px; border:none; background:#4caf50; color:white; border-radius:4px; cursor:pointer; width: 100%; font-weight: bold;">
-            Chuyển khoản thành công ấn vào đây
+
+        <button id="testServerPay" style="margin-top:20px; padding:10px 15px; border:none; background:#ccc; color:#333; border-radius:4px; cursor:pointer; width: 100%; font-weight: bold; font-size: 12px;">
+            [Nút Test] Click để thử nghiệm thanh toán (client-side)
         </button>
     </div>
 
@@ -223,7 +226,7 @@
     </div>
 </div>
 
-<script src="scriptthanhtoan.js"></script>
+<script src="script.js"></script>
 
 </body>
 </html>
