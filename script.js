@@ -105,10 +105,22 @@ async function generatePaymentQR() {
         qrImgElement.alt = "Đang tải mã QR..."; // Reset text lỗi cũ trước khi gắn src mới
 
         if (result.qrCode) {
-            qrImgElement.src = result.qrCode;
+        qrImgElement.src = result.qrCode;
         } else if (result.data && result.data.qrCode) {
-            qrImgElement.src = result.data.qrCode;
+        qrImgElement.src = result.data.qrCode;
+        } else if (result.qrCode) {
+        qrImgElement.src = result.qrCode;
+        } else if (result.data && result.data.checkoutUrl) {
+    // Nếu PayOS không trả QR trực tiếp, ta tự lấy mã định danh thanh toán để sinh ảnh VietQR nhanh hoặc dùng checkoutUrl
+        qrImgElement.src = result.data.checkoutUrl; 
         } else {
+    // Giải pháp dự phòng: Tự tạo link VietQR trực tiếp từ client nếu server trả thiếu thuộc tính hiển thị
+        const BANK_ID = "MB"; 
+        const ACCOUNT_NO = "0937551868"; 
+        const ACCOUNT_NAME = "MAI VAN VIET"; 
+        qrImgElement.src = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${amount}&addInfo=${encodeURIComponent(memo)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
+        }
+        else {
             Swal.fire({
                 icon: "error",
                 title: "Không nhận được QR từ server"
