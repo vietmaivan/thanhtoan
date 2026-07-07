@@ -8,7 +8,7 @@ if (CURRENT_HOST.includes("localhost") || CURRENT_HOST.includes("127.0.0.1")) {
     API_URL = `${window.location.protocol}//${window.location.host}`;
 } else {
     // KHI CHẠY TRÊN GITHUB PAGES: Thay link chạy thực tế hiện tại của bạn vào đây
-    API_URL = "https://bug-free-dollop-qp94g7w9jg624gx9-3000.app.github.dev";
+    API_URL = https://bug-free-dollop-qp94g7w9jg624gx9-3000.app.github.dev";
 }
 
 console.log("Cấu hình API kết nối tới mục tiêu:", API_URL);
