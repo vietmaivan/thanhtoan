@@ -15,19 +15,14 @@ const PayOS = PayOSModule ? (PayOSModule.PayOS || PayOSModule.default || PayOSMo
 const app = express();
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin || origin.includes("github.dev") || origin.includes("app.github.dev")) {
-      callback(null, true);
-    } else {
-      callback(null, true);
-    }
-  },
+  origin: "*", // Cho phép tất cả các nguồn truy cập khi đang trong quá trình thử nghiệm
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
+  credentials: false // BẮT BUỘC: Khi dùng origin "*" thì credentials phải là false
 };
 
 app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
