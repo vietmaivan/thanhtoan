@@ -103,31 +103,29 @@ async function generatePaymentQR() {
         const qrImgElement = document.getElementById("qrImage");
         qrImgElement.alt = "Đang tải mã QR..."; // Reset text báo lỗi cũ
 
-        // --- ĐOẠN XỬ LÝ ĐƯỜNG DẪN ẢNH QR GỐC TỪ API ---
-        let qrDataString = "";
-        if (result.data && result.data.qrCode) {
-            qrDataString = result.data.qrCode;
-        } else if (result.qrCode) {
-            qrDataString = result.qrCode;
-        } else if (result.data && result.data.checkoutUrl) {
-            // Nếu API trả về link trang thanh toán thay vì mã ảnh
+        // --- ĐOẠN XỬ LÝ ĐƯỜNG DẪN ẢNH QR GỐC TỪ API (ĐÃ TỐI ƯU HÓA) ---
+        let qrDataString = result.qrCode || (result.data && result.data.qrCode) || "";
+        
+        if (!qrDataString && result.checkoutUrl) {
+            qrDataString = result.checkoutUrl;
+        } else if (!qrDataString && result.data && result.data.checkoutUrl) {
             qrDataString = result.data.checkoutUrl;
         }
 
         // --- ĐOẠN PHÂN TÍCH VÀ BIẾN ĐỔI THÀNH ẢNH CHUẨN ---
         if (qrDataString) {
             if (qrDataString.startsWith("http") || qrDataString.startsWith("data:image")) {
-                // Nếu đã là link ảnh URL trực tiếp hoặc Base64, gán thẳng vào src
+                // Nếu đã là link ảnh URL trực tiếp hoặc Base64 từ api, gán thẳng vào src
                 qrImgElement.src = qrDataString;
             } else if (qrDataString.startsWith("000201")) {
-                // SỬA LỖI ĐÂY: Nếu là chuỗi text thô, gọi qua API tạo ảnh QR miễn phí của VietQR
+                // Nếu là chuỗi text VietQR thô, gọi qua API tạo ảnh QR miễn phí của VietQR
                 qrImgElement.src = `https://api.vietqr.io/image/generate.png?data=${encodeURIComponent(qrDataString)}`;
             } else {
                 qrImgElement.src = qrDataString;
             }
         } else {
-            // Giải pháp dự phòng tự tạo link VietQR nếu hệ thống API backend không trả dữ liệu về
-            console.warn("API không phản hồi chuỗi QR, chuyển sang phương án dự phòng.");
+            // Giải pháp dự phòng tự tạo link VietQR trực tiếp nếu hệ thống API backend không trả dữ liệu về
+            console.warn("API không phản hồi chuỗi QR, chuyển sang phương án dự phòng hiển thị trực tiếp.");
             const BANK_ID = "MB"; 
             const ACCOUNT_NO = "0937551868"; 
             const ACCOUNT_NAME = "MAI VAN VIET"; 
@@ -142,11 +140,21 @@ async function generatePaymentQR() {
     } catch (err) {
         console.error("Lỗi tạo QR:", err);
         Swal.close();
-        Swal.fire({
-            icon: "error",
-            title: "Lỗi kết nối",
-            text: err.message || "Không thể kết nối tới máy chủ API."
-        });
+        
+        // CƠ CHẾ DỰ PHÒNG CẤP CAO: Nếu sập API hoàn toàn hoặc lỗi CORS, vẫn hiển thị QR cứng cho khách quét
+        document.getElementById("inputForm").style.display = "none";
+        document.getElementById("qrSection").style.display = "block";
+        document.getElementById("displayAmount").innerText = cleanAmount.toLocaleString("vi-VN") + " đ";
+        document.getElementById("orderMemo").innerText = memo;
+        document.getElementById("successStudentInfo").innerText = rawName;
+        
+        const BANK_ID = "MB"; 
+        const ACCOUNT_NO = "0937551868"; 
+        const ACCOUNT_NAME = "MAI VAN VIET"; 
+        document.getElementById("qrImage").src = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${cleanAmount}&addInfo=${encodeURIComponent(memo)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
+        
+        document.getElementById("labelText").innerText = "Đang hiển thị chế độ dự phòng (Vẫn quét được)...";
+        console.warn("Đã kích hoạt QR dự phòng trực tiếp không thông qua API.");
     }
 }
 
