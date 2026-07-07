@@ -1,16 +1,18 @@
 const CURRENT_HOST = window.location.hostname;
-let API_URL = "https://automatic-halibut-64r579jr6r4f4p4-3000.app.github.dev";
+let API_URL = "";
 
-// Cấu hình tự động: Nếu chạy ở máy tính cá nhân (Localhost) thì giữ nguyên localhost, 
-// còn nếu chạy trên GitHub Pages hoặc bất kỳ đâu khác, sẽ ép buộc gọi tới link Codespaces của bạn.
 if (CURRENT_HOST.includes("localhost") || CURRENT_HOST.includes("127.0.0.1")) {
     API_URL = "http://localhost:3000"; 
+} else if (CURRENT_HOST.includes("github.dev") || CURRENT_HOST.includes("app.github.dev")) {
+    // Tự động lấy link Codespace hiện tại nếu bạn đang test trực tiếp trên tab Codespace preview
+    API_URL = `${window.location.protocol}//${window.location.host}`;
 } else {
-    // Trỏ thẳng về link Codespace của bạn khi chạy trên GitHub Pages (vietmaivan.github.io)
-    API_URL = "https://automatic-halibut-64r579jr6r4f4p4-3000.app.github.dev";
+    // KHI CHẠY TRÊN GITHUB PAGES: Thay link chạy thực tế hiện tại của bạn vào đây
+    API_URL = "https://turbo-system-xv9pq5jvr5gc669g-3000.app.github.dev";
 }
 
 console.log("Cấu hình API kết nối tới mục tiêu:", API_URL);
+
 
 // --- Các đoạn code bên dưới giữ nguyên ---
 /*
