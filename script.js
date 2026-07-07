@@ -1,13 +1,11 @@
 const CURRENT_HOST = window.location.hostname;
-let API_URL ="https://yourcodespace-3000.app.github.dev";
+let API_URL = "";
 
-// Cấu hình tự động cho Codespaces / github.dev / app.github.dev / localhost
 if (CURRENT_HOST.includes("localhost") || CURRENT_HOST.includes("127.0.0.1")) {
+    API_URL = "http://localhost:3000"; // Định nghĩa rõ port local nếu chạy tách biệt
 } else if (CURRENT_HOST.includes("github.dev") || CURRENT_HOST.includes("app.github.dev")) {
-    // Trỏ về host hiện tại (Codespaces preview uses <workspace>-3000.app.github.dev)
     API_URL = `${window.location.protocol}//${window.location.host}`;
 } else {
-    // Nếu được serve cùng server (ví dụ node server sẽ serve static), dùng đường dẫn tương đối
     API_URL = "";
 }
 
@@ -22,6 +20,7 @@ function removeSign(str) {
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/đ/g, "d")
         .replace(/Đ/g, "D")
+        .replace(/[^a-zA-Z0-9\s]/g, "") // SỬA TẠI ĐÂY: Loại bỏ triệt để ký tự đặc biệt nguy hiểm cho URL
         .toUpperCase()
         .replace(/\s+/g, " ")
         .trim();
@@ -41,6 +40,7 @@ async function generatePaymentQR() {
         return;
     }
 
+    // Giới hạn 25 ký tự để tránh vỡ chuỗi quy định của ngân hàng
     const memo = `${removeSign(rawName)} ${removeSign(rawContent)}`
         .substring(0, 25)
         .trim();
@@ -70,10 +70,9 @@ async function generatePaymentQR() {
 
         const result = await response.json();
         Swal.close();
-        console.log(result);
 
         if (!result.success) {
-            throw new Error(result.message || result.error || "Không tạo được link thanh toán");
+            throw new Error(result.message || "Không tạo được link thanh toán");
         }
 
         currentOrderCode = result.orderCode;
@@ -87,10 +86,13 @@ async function generatePaymentQR() {
         document.getElementById("orderMemo").innerText = memo;
         document.getElementById("successStudentInfo").innerText = rawName;
 
+        const qrImgElement = document.getElementById("qrImage");
+        qrImgElement.alt = "Đang tải mã QR..."; // Reset text lỗi cũ trước khi gắn src mới
+
         if (result.qrCode) {
-            document.getElementById("qrImage").src = result.qrCode;
+            qrImgElement.src = result.qrCode;
         } else if (result.data && result.data.qrCode) {
-            document.getElementById("qrImage").src = result.data.qrCode;
+            qrImgElement.src = result.data.qrCode;
         } else {
             Swal.fire({
                 icon: "error",
@@ -109,7 +111,7 @@ async function generatePaymentQR() {
         Swal.fire({
             icon: "error",
             title: "Lỗi kết nối",
-            text: err.message || "Không thể kết nối tới máy chủ API. Vui lòng kiểm tra lại cấu hình."
+            text: err.message || "Không thể kết nối tới máy chủ API."
         });
     }
 }
@@ -119,13 +121,9 @@ async function verifyPaymentRealTime() {
 
     try {
         const response = await fetch(`${API_URL}/check-order/${currentOrderCode}`);
-        if (!response.ok) {
-            console.warn("Kiểm tra trạng thái trả lỗi:", response.status);
-            return;
-        }
+        if (!response.ok) return;
+        
         const result = await response.json();
-        console.log("check-order:", result);
-
         if (result.success && (result.status === "PAID" || result.status === "SUCCESS")) {
             showSuccessNotification();
         }
@@ -148,13 +146,7 @@ function showSuccessNotification() {
     });
 }
 
-function triggerMockSuccess() {
-    showSuccessNotification();
-}
-
-// Hook buttons
 document.getElementById("payBtn").addEventListener("click", generatePaymentQR);
 document.getElementById("testServerPay").addEventListener("click", () => {
-    // client-side immediate success (keeps server untouched)
-    triggerMockSuccess();
+    showSuccessNotification();
 });

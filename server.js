@@ -3,7 +3,7 @@ const cors = require("cors");
 const path = require("path");
 const serverless = require('serverless-http');
 
-// PayOS SDK (try multiple common exports)
+// PayOS SDK
 let PayOSModule;
 try {
   PayOSModule = require("@payos/node");
@@ -14,16 +14,11 @@ const PayOS = PayOSModule ? (PayOSModule.PayOS || PayOSModule.default || PayOSMo
 
 const app = express();
 
-// ==========================
-// CORS
-// ==========================
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow if no origin (curl / server-side) or allow preview domains
     if (!origin || origin.includes("github.dev") || origin.includes("app.github.dev")) {
       callback(null, true);
     } else {
-      // allow same origin requests (when served from same host)
       callback(null, true);
     }
   },
@@ -35,23 +30,17 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Serve static files (index.html, script.js) from project root so Codespace preview can load them
 app.use(express.static(path.join(__dirname)));
 
-// Simple request logger
 app.use((req, res, next) => {
   console.log(new Date().toISOString(), req.method, req.url);
   next();
 });
 
-// ==========================
-// PayOS configuration - support MOCK when env not present
-// ==========================
 require("dotenv").config();
 
 let payosClient = null;
-const payments = {}; // in-memory store for mock mode
+const payments = {}; 
 
 if (process.env.PAYOS_CLIENT_ID && process.env.PAYOS_API_KEY && process.env.PAYOS_CHECKSUM_KEY && PayOS) {
   try {
@@ -81,13 +70,13 @@ if (!payosClient) {
         createdAt: Date.now()
       };
       
-      // Cấu hình VietQR chuẩn quét bằng App Ngân hàng
-      const BANK_ID = "MB BANK"; // Giữ nguyên MB nếu bạn dùng MB Bank
-      const ACCOUNT_NO = "0937551868"; // Điền số tài khoản MB của bạn
-      const ACCOUNT_NAME = "MAI VAN VIET"; // Tên tài khoản không dấu
+      // SỬA TẠI ĐÂY: Thay thế "MB BANK" thành mã chuẩn "MB" của VietQR và tối ưu URL
+      const BANK_ID = "MB"; 
+      const ACCOUNT_NO = "0937551868"; 
+      const ACCOUNT_NAME = "MAI VAN VIET"; 
       
-      const infoDesc = encodeURIComponent(description || "Thanh toan");
-      const qrUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${amount}&addInfo=${infoDesc}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
+      // Sử dụng URL template chuẩn không bị double encode
+      const qrUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${amount}&addInfo=${encodeURIComponent(description)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
 
       return {
         checkoutUrl: `https://example.com/checkout/${code}`,
@@ -108,19 +97,12 @@ if (!payosClient) {
       return { status: info.status, data: info };
     }
   };
-} // <-- ĐÂY LÀ DẤU NGOẶC ĐÃ ĐƯỢC THÊM ĐỂ SỬA LỖI!
+}
 
-// ==========================
-// Routes
-// ==========================
-
-// Serve index.html by default (allow static middleware above to handle)
-// Provide a health check API
 app.get("/api/health", (req, res) => {
-  res.json({ success: true, message: "Server is running", mockMode: !!process.env.PAYOS_CLIENT_ID ? false : true });
+  res.json({ success: true, message: "Server is running", mockMode: !process.env.PAYOS_CLIENT_ID });
 });
 
-// Create payment link
 app.post("/create-payment-link", async (req, res) => {
   try {
     const { amount, description } = req.body;
@@ -128,19 +110,15 @@ app.post("/create-payment-link", async (req, res) => {
       return res.status(400).json({ success: false, message: "Thiếu thông tin amount" });
     }
 
-    const orderCode = Date.now(); // use timestamp as order code (unique enough for demo)
-
-    // Build data expected by real SDK; for mock we accept same shape
+    const orderCode = Date.now();
     const paymentData = {
       orderCode,
       amount: Number(amount),
-      description: (description || "Thanh toan").substring(0, 100)
+      description: (description || "Thanh toan").substring(0, 25) // Giới hạn đúng 25 ký tự để VietQR không lỗi
     };
 
-    // If using real SDK, call its method; the mock also exposes same method
     const result = await payosClient.createPaymentLink(paymentData);
 
-    // If mock, the mock returns data as defined above
     res.json({
       success: true,
       orderCode,
@@ -150,11 +128,10 @@ app.post("/create-payment-link", async (req, res) => {
     });
   } catch (err) {
     console.error("Error create-payment-link:", err);
-    res.status(500).json({ success: false, message: err.message || "Internal server error", error: err });
+    res.status(500).json({ success: false, message: err.message || "Internal server error" });
   }
 });
 
-// Check order
 app.get("/check-order/:orderCode", async (req, res) => {
   try {
     const orderCode = req.params.orderCode;
@@ -166,7 +143,6 @@ app.get("/check-order/:orderCode", async (req, res) => {
   }
 });
 
-// Simulate payment (useful for testing on Codespace) - marks order as PAID
 app.post("/simulate-pay/:orderCode", (req, res) => {
   const code = Number(req.params.orderCode);
   if (!payments[code]) {
@@ -176,16 +152,11 @@ app.post("/simulate-pay/:orderCode", (req, res) => {
   return res.json({ success: true, orderCode: code, status: "PAID" });
 });
 
-// ==========================
-// Start server or export handler for serverless
-// ==========================
 const PORT = process.env.PORT || 3000;
-
 if (process.env.NETLIFY) {
   module.exports.handler = serverless(app);
 } else {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-    console.log(`Open http://localhost:${PORT} locally or preview the port in Codespaces at :${PORT}`);
   });
 }
