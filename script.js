@@ -13,19 +13,6 @@ if (CURRENT_HOST.includes("localhost") || CURRENT_HOST.includes("127.0.0.1")) {
 
 console.log("Cấu hình API kết nối tới mục tiêu:", API_URL);
 
-
-// --- Các đoạn code bên dưới giữ nguyên ---
-/*
-if (CURRENT_HOST.includes("localhost") || CURRENT_HOST.includes("127.0.0.1")) {
-    API_URL = "http://localhost:3000"; // Định nghĩa rõ port local nếu chạy tách biệt
-} else if (CURRENT_HOST.includes("github.dev") || CURRENT_HOST.includes("app.github.dev")) {
-    API_URL = `${window.location.protocol}//${window.location.host}`;
-} else {
-    API_URL = "";
-}
-
-console.log("Cấu hình API kết nối tới mục tiêu:", API_URL);
-*/
 let currentOrderCode = null;
 let checkInterval = null;
 
@@ -35,7 +22,7 @@ function removeSign(str) {
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/đ/g, "d")
         .replace(/Đ/g, "D")
-        .replace(/[^a-zA-Z0-9\s]/g, "") // SỬA TẠI ĐÂY: Loại bỏ triệt để ký tự đặc biệt nguy hiểm cho URL
+        .replace(/[^a-zA-Z0-9\s]/g, "") // Loại bỏ triệt để ký tự đặc biệt nguy hiểm cho URL
         .toUpperCase()
         .replace(/\s+/g, " ")
         .trim();
@@ -104,29 +91,28 @@ async function generatePaymentQR() {
         const qrImgElement = document.getElementById("qrImage");
         qrImgElement.alt = "Đang tải mã QR..."; // Reset text lỗi cũ trước khi gắn src mới
 
-        if (result.qrCode) {
-        qrImgElement.src = result.qrCode;
-        } else if (result.data && result.data.qrCode) {
-        qrImgElement.src = result.data.qrCode;
+        // --- ĐOẠN ĐÃ SỬA: Sắp xếp mạch lạc logic, loại bỏ hoàn toàn các lỗi cú pháp lặp khối ---
+        if (result.data && result.data.qrCode) {
+            qrImgElement.src = result.data.qrCode;
         } else if (result.qrCode) {
-        qrImgElement.src = result.qrCode;
+            qrImgElement.src = result.qrCode;
         } else if (result.data && result.data.checkoutUrl) {
-    // Nếu PayOS không trả QR trực tiếp, ta tự lấy mã định danh thanh toán để sinh ảnh VietQR nhanh hoặc dùng checkoutUrl
-        qrImgElement.src = result.data.checkoutUrl; 
+            qrImgElement.src = result.data.checkoutUrl; 
+        } else if (amount && memo) {
+            // Giải pháp dự phòng: Tự sinh link VietQR chuẩn nếu không lấy trực tiếp được ảnh từ kết quả
+            const BANK_ID = "MB"; 
+            const ACCOUNT_NO = "0937551868"; 
+            const ACCOUNT_NAME = "MAI VAN VIET"; 
+            qrImgElement.src = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${amount}&addInfo=${encodeURIComponent(memo)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
         } else {
-    // Giải pháp dự phòng: Tự tạo link VietQR trực tiếp từ client nếu server trả thiếu thuộc tính hiển thị
-        const BANK_ID = "MB"; 
-        const ACCOUNT_NO = "0937551868"; 
-        const ACCOUNT_NAME = "MAI VAN VIET"; 
-        qrImgElement.src = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${amount}&addInfo=${encodeURIComponent(memo)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
-        }
-        else {
             Swal.fire({
                 icon: "error",
-                title: "Không nhận được QR từ server"
+                title: "Không nhận được QR từ server",
+                text: "Vui lòng kiểm tra lại cấu hình kết nối ứng dụng."
             });
             return;
         }
+        // -----------------------------------------------------------------------------------
 
         document.getElementById("labelText").innerText = "Đang chờ thanh toán...";
         clearInterval(checkInterval);
