@@ -43,7 +43,6 @@ async function generatePaymentQR() {
         return;
     }
 
-    // Xử lý số tiền: Loại bỏ tất cả ký tự không phải là số (ví dụ: "100.000" -> 100000)
     const cleanAmount = Number(amountInput.replace(/[^0-9]/g, ""));
     if (isNaN(cleanAmount) || cleanAmount <= 0) {
         Swal.fire({
@@ -54,7 +53,6 @@ async function generatePaymentQR() {
         return;
     }
 
-    // Giới hạn 25 ký tự để tránh vỡ chuỗi quy định của ngân hàng
     const memo = `${removeSign(rawName)} ${removeSign(rawContent)}`
         .substring(0, 25)
         .trim();
@@ -98,63 +96,47 @@ async function generatePaymentQR() {
         // Hiển thị thông tin định dạng chuẩn lên giao diện
         document.getElementById("displayAmount").innerText = cleanAmount.toLocaleString("vi-VN") + " đ";
         document.getElementById("orderMemo").innerText = memo;
-        document.getElementById("successStudentInfo").innerText = rawName;
+        
+        const successStudentInfoElem = document.getElementById("successStudentInfo");
+        if (successStudentInfoElem) successStudentInfoElem.innerText = rawName;
 
         const qrImgElement = document.getElementById("qrImage");
-        qrImgElement.alt = "Đang tải mã QR..."; // Reset text báo lỗi cũ
+        qrImgElement.alt = "Đang tải mã QR...";
 
-        // --- ĐOẠN XỬ LÝ ĐƯỜNG DẪN ẢNH QR GỐC TỪ API (ĐÃ TỐI ƯU HÓA) ---
-        let qrDataString = result.qrCode || (result.data && result.data.qrCode) || "";
+        // --- ĐOẠN ĐỔI SANG DÙNG ẢNH TĨNH ĐỂ KHÔNG BỊ TRÌNH DUYỆT HỦY REQUEST ---
+        const BANK_ID = "MB"; 
+        const ACCOUNT_NO = "0937551868"; 
+        const ACCOUNT_NAME = "MAI VAN VIET"; 
         
-        if (!qrDataString && result.checkoutUrl) {
-            qrDataString = result.checkoutUrl;
-        } else if (!qrDataString && result.data && result.data.checkoutUrl) {
-            qrDataString = result.data.checkoutUrl;
-        }
-
-        // --- ĐOẠN PHÂN TÍCH VÀ BIẾN ĐỔI THÀNH ẢNH CHUẨN ---
-        if (qrDataString) {
-            if (qrDataString.startsWith("http") || qrDataString.startsWith("data:image")) {
-                // Nếu đã là link ảnh URL trực tiếp hoặc Base64 từ api, gán thẳng vào src
-                qrImgElement.src = qrDataString;
-            } else if (qrDataString.startsWith("000201")) {
-                // Nếu là chuỗi text VietQR thô, gọi qua API tạo ảnh QR miễn phí của VietQR
-                qrImgElement.src = `https://api.vietqr.io/image/generate.png?data=${encodeURIComponent(qrDataString)}`;
-            } else {
-                qrImgElement.src = qrDataString;
-            }
-        } else {
-            // Giải pháp dự phòng tự tạo link VietQR trực tiếp nếu hệ thống API backend không trả dữ liệu về
-            console.warn("API không phản hồi chuỗi QR, chuyển sang phương án dự phòng hiển thị trực tiếp.");
-            const BANK_ID = "MB"; 
-            const ACCOUNT_NO = "0937551868"; 
-            const ACCOUNT_NAME = "MAI VAN VIET"; 
-            
-            qrImgElement.src = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${cleanAmount}&addInfo=${encodeURIComponent(memo)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
-        }
+        // Tạo link ảnh tĩnh trực tiếp từ cổng img.vietqr.io (luôn hiển thị, không sợ lỗi chuỗi)
+        const directQrUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${cleanAmount}&addInfo=${encodeURIComponent(memo)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
+        
+        // Gán link ảnh tĩnh trực tiếp
+        qrImgElement.src = directQrUrl;
 
         document.getElementById("labelText").innerText = "Đang chờ thanh toán...";
+        
+        // Xóa interval cũ và delay 3 giây trước khi bắt đầu check real-time để tránh xung đột tải ảnh
         clearInterval(checkInterval);
-        checkInterval = setInterval(verifyPaymentRealTime, 2000);
+        setTimeout(() => {
+            checkInterval = setInterval(verifyPaymentRealTime, 3000);
+        }, 3000);
 
     } catch (err) {
         console.error("Lỗi tạo QR:", err);
         Swal.close();
         
-        // CƠ CHẾ DỰ PHÒNG CẤP CAO: Nếu sập API hoàn toàn hoặc lỗi CORS, vẫn hiển thị QR cứng cho khách quét
+        // Cơ chế dự phòng khẩn cấp
         document.getElementById("inputForm").style.display = "none";
         document.getElementById("qrSection").style.display = "block";
         document.getElementById("displayAmount").innerText = cleanAmount.toLocaleString("vi-VN") + " đ";
         document.getElementById("orderMemo").innerText = memo;
-        document.getElementById("successStudentInfo").innerText = rawName;
         
         const BANK_ID = "MB"; 
         const ACCOUNT_NO = "0937551868"; 
         const ACCOUNT_NAME = "MAI VAN VIET"; 
         document.getElementById("qrImage").src = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${cleanAmount}&addInfo=${encodeURIComponent(memo)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
-        
-        document.getElementById("labelText").innerText = "Đang hiển thị chế độ dự phòng (Vẫn quét được)...";
-        console.warn("Đã kích hoạt QR dự phòng trực tiếp không thông qua API.");
+        document.getElementById("labelText").innerText = "Đang hiển thị mã thanh toán dự phòng...";
     }
 }
 
