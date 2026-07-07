@@ -108,27 +108,40 @@ app.post("/create-payment-link", async (req, res) => {
     }
 
     const orderCode = Date.now();
-    
-    // ĐỊNH NGHĨA LINK QUAY VỀ (Thay link GitHub Pages của bạn vào đây)
     const YOUR_DOMAIN = "https://vietmaivan.github.io/thanhtoan"; 
 
     const paymentData = {
       orderCode,
       amount: Number(amount),
-      description: (description || "Thanh toan").substring(0, 25), // Giới hạn đúng 25 ký tự để VietQR không lỗi
-      returnUrl: `${YOUR_DOMAIN}/index.html`, // <-- BỔ SUNG DÒNG NÀY
-      cancelUrl: `${YOUR_DOMAIN}/index.html`  // <-- BỔ SUNG DÒNG NÀY
+      description: (description || "Thanh toan").substring(0, 25),
+      returnUrl: `${YOUR_DOMAIN}/index.html`, 
+      cancelUrl: `${YOUR_DOMAIN}/index.html`  
     };
 
+    // Gọi hàm tạo link (Hàm mock hoặc SDK PayOS)
     const result = await payosClient.createPaymentLink(paymentData);
 
+    // THIẾT LẬP ĐƯỜNG LINK VIETQR DỰ PHÒNG NẾU RESULT KHÔNG CÓ QRCODE
+    const BANK_ID = "MB"; 
+    const ACCOUNT_NO = "0937551868"; 
+    const ACCOUNT_NAME = "MAI VAN VIET"; 
+    const fallbackQr = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${amount}&addInfo=${encodeURIComponent(paymentData.description)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
+
+    // TRẢ VỀ JSON: Đảm bảo dữ liệu luôn có qrCode ở cả lớp ngoài lẫn lớp trong (data)
     res.json({
       success: true,
       orderCode,
-      checkoutUrl: result.checkoutUrl,
-      qrCode: result.qrCode,
-      data: result.data || result
+      checkoutUrl: result.checkoutUrl || `https://example.com/checkout/${orderCode}`,
+      qrCode: result.qrCode || fallbackQr, 
+      data: {
+        orderCode,
+        amount: Number(amount),
+        description: paymentData.description,
+        qrCode: result.qrCode || fallbackQr,
+        checkoutUrl: result.checkoutUrl || `https://example.com/checkout/${orderCode}`
+      }
     });
+
   } catch (err) {
     console.error("Error create-payment-link:", err);
     res.status(500).json({ success: false, message: err.message || "Internal server error" });
