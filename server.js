@@ -69,10 +69,9 @@ if (process.env.PAYOS_CLIENT_ID && process.env.PAYOS_API_KEY && process.env.PAYO
 
 if (!payosClient) {
   console.warn("PAYOS credentials missing or SDK not installed. Running in MOCK mode.");
-  // Mock payosClient with minimal API used by frontend
+
   payosClient = {
     async createPaymentLink({ orderCode, amount, description }) {
-      // create a QR image URL via api.qrserver.com for demo
       const code = orderCode || Date.now();
       payments[code] = {
         orderCode: code,
@@ -81,42 +80,34 @@ if (!payosClient) {
         status: "PENDING",
         createdAt: Date.now()
       };
-      // Thay các thông tin dưới đây bằng tài khoản thật của bạn để test quét mã
+      
+      // Cấu hình VietQR chuẩn quét bằng App Ngân hàng
       const BANK_ID = "MB BANK"; // Giữ nguyên MB nếu bạn dùng MB Bank
       const ACCOUNT_NO = "0937551868"; // Điền số tài khoản MB của bạn
       const ACCOUNT_NAME = "MAI VAN VIET"; // Tên tài khoản không dấu
-
+      
       const infoDesc = encodeURIComponent(description || "Thanh toan");
       const qrUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${amount}&addInfo=${infoDesc}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
 
       return {
         checkoutUrl: `https://example.com/checkout/${code}`,
-        qrCode: qrUrl, // Trả về link ảnh VietQR chuẩn
+        qrCode: qrUrl,
         data: payments[code]
       };
-/*
-      const qrData = encodeURIComponent(`PAYMENT|${code}|${payments[code].amount}|${payments[code].description}`);
-      return {
-        checkoutUrl: `https://example.com/checkout/${code}`,
-        qrCode: `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${qrData}`,
-        data: payments[code]
-      };
-    },
-*/
+    }, // <-- Lỗi của bạn trước đó thường là do thiếu dấu phẩy quan trọng này đây!
+
     async getPaymentLinkInformation(orderCode) {
       const code = Number(orderCode);
       const info = payments[code];
       if (!info) {
         return { status: "NOT_FOUND", data: null };
       }
-      // For demo: if older than 10s, mark as PAID (optional)
       if (Date.now() - info.createdAt > 60000 && info.status === "PENDING") {
         info.status = "PAID";
       }
       return { status: info.status, data: info };
     }
   };
-}
 
 // ==========================
 // Routes
