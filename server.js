@@ -108,10 +108,16 @@ app.post("/create-payment-link", async (req, res) => {
     }
 
     const orderCode = Date.now();
+    
+    // ĐỊNH NGHĨA LINK QUAY VỀ (Thay link GitHub Pages của bạn vào đây)
+    const YOUR_DOMAIN = "https://vietmaivan.github.io/thanhtoan"; 
+
     const paymentData = {
       orderCode,
       amount: Number(amount),
-      description: (description || "Thanh toan").substring(0, 25) // Giới hạn đúng 25 ký tự để VietQR không lỗi
+      description: (description || "Thanh toan").substring(0, 25), // Giới hạn đúng 25 ký tự để VietQR không lỗi
+      returnUrl: `${YOUR_DOMAIN}/index.html`, // <-- BỔ SUNG DÒNG NÀY
+      cancelUrl: `${YOUR_DOMAIN}/index.html`  // <-- BỔ SUNG DÒNG NÀY
     };
 
     const result = await payosClient.createPaymentLink(paymentData);
