@@ -3,7 +3,6 @@ let API_URL ="https://yourcodespace-3000.app.github.dev";
 
 // Cấu hình tự động cho Codespaces / github.dev / app.github.dev / localhost
 if (CURRENT_HOST.includes("localhost") || CURRENT_HOST.includes("127.0.0.1")) {
-    API_URL = "http://localhost:3000";
 } else if (CURRENT_HOST.includes("github.dev") || CURRENT_HOST.includes("app.github.dev")) {
     // Trỏ về host hiện tại (Codespaces preview uses <workspace>-3000.app.github.dev)
     API_URL = `${window.location.protocol}//${window.location.host}`;
